@@ -1,5 +1,5 @@
 // src/components/CouponsPage.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import styles from '../styles/CouponsPage.module.css';
 import CouponForm from './CouponForm';
@@ -7,6 +7,8 @@ import CouponForm from './CouponForm';
 const CouponsPage = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [coupons, setCoupons] = useState([]);
+
+  const access_token = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiQWRtaW4iLCJlbWFpbCI6ImFkbWluQGVtYWlsLmNvbSIsInVzZXJUeXBlIjoicHJpX2FkbWluIiwidXNlcklkIjoiNjU3OGIwNTYwYzgwOWRmZDliMDJlOWFlIiwiaWF0IjoxNzIyMzYwOTY2LCJleHAiOjE3MjI5NjU3NjZ9.bYC7ZBgqQynPIbPF-eT9MrCemOcbmOoy9hc1tn4Iwl1BCoy2boLY-zxUoyeWN0ZuCiueC-guizUZL5KyNKV16g'
 
   const handleCreateCouponClick = () => {
     setModalOpen(true);
@@ -16,30 +18,55 @@ const CouponsPage = () => {
     setModalOpen(false);
   };
 
+  useEffect(()=>{
+    fetchCoupon();
+  },[])
+
+  const fetchCoupon = async () => {
+    try {
+      const response = await axios.get(
+        `https://12cb-2401-4900-33d5-b6fa-880d-5bd3-d18a-37b0.ngrok-free.app/api/v1/coupon`,{
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${access_token}`,
+            "ngrok-skip-browser-warning": 1,
+          },
+        }
+      )
+
+      setCoupons(response.data.content);
+      console.log(response.data.content);
+    } catch (error) {
+      console.error('Error:',error);
+    }
+  }
+
   const handleFormSubmit = async (couponData) => {
     try {
       const response = await axios.post(
-        'https://62a5-2401-4900-4bb0-cbd8-421-fcc5-260f-f78c.ngrok-free.app/api/v1/coupon',
+        `https://12cb-2401-4900-33d5-b6fa-880d-5bd3-d18a-37b0.ngrok-free.app/api/v1/coupon`,
         {
           couponCode: couponData.code,
-          discount: couponData.discount,
-          useType: couponData.type,
+          discount: Number(couponData.discount),
+          useType: Number(couponData.type),
           couponSpecific: couponData.quantity || 'N/A',
           couponLimit: couponData.limit,
         },
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': "Bearer  eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJlbWFpbCI6ImFkbWluQGVtYWlsLmNvbSIsInVzZXJUeXBlIjoicHJpX2FkbWluIiwidXNlcklkIjoiNjY5MTQyYjhkMmExNTc3ZDliMzNmODhlIiwiaWF0IjoxNzIyMjc5NDA5LCJleHAiOjE3MjI4ODQyMDl9.RvCnjfN79NgdzFlEB_ticDHi5BRsp716xfFYGHTcFWQM0ylskKpgrMiwvPHWT2RjBvv1etn6Ra5JFY_tZJfohA",
+            Authorization: `Bearer ${access_token}`,
+            "ngrok-skip-browser-warning": 1,
           }
         }
       );
 
-      if (response.status === 201) {
-        const newCoupon = response.data;
+      
+        const newCoupon = response.data.content;
+        console.log(newCoupon);
         setCoupons([...coupons, newCoupon]);
         handleCloseModal();
-      }
+
     } catch (error) {
       console.error('Failed to create coupon', error.response ? error.response.data : error.message);
     }

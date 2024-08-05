@@ -2,15 +2,17 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import styles from '../styles/CouponsPage.module.css';
-import CouponForm from './CouponForm';
+import CouponForm from '../components/CouponForm';
 
 const CouponsPage = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [coupons, setCoupons] = useState([]);
+  const [editingCoupon, setEditingCoupon] = useState(null);
 
-  const access_token = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiQWRtaW4iLCJlbWFpbCI6ImFkbWluQGVtYWlsLmNvbSIsInVzZXJUeXBlIjoicHJpX2FkbWluIiwidXNlcklkIjoiNjU3OGIwNTYwYzgwOWRmZDliMDJlOWFlIiwiaWF0IjoxNzIyMzYwOTY2LCJleHAiOjE3MjI5NjU3NjZ9.bYC7ZBgqQynPIbPF-eT9MrCemOcbmOoy9hc1tn4Iwl1BCoy2boLY-zxUoyeWN0ZuCiueC-guizUZL5KyNKV16g'
+  const access_token = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJlbWFpbCI6ImFkbWluQGVtYWlsLmNvbSIsInVzZXJUeXBlIjoicHJpX2FkbWluIiwidXNlcklkIjoiNjY5MGJiNzEyNTE5NGZhODgxYWNiOTgxIiwiaWF0IjoxNzIyODM4MjAzLCJleHAiOjE3MjM0NDMwMDN9.KT7_kGK79gDlhzcyrBi3hDToZ8umGv3Q7iaJqnS0Kxv8kR9bfE26dUiLEdx3uYD8UyjH39iIJI14rRCVOhopfw';
 
   const handleCreateCouponClick = () => {
+    setEditingCoupon(null);
     setModalOpen(true);
   };
 
@@ -18,40 +20,97 @@ const CouponsPage = () => {
     setModalOpen(false);
   };
 
-  useEffect(()=>{
-    fetchCoupon();
-  },[])
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
 
-  const fetchCoupon = async () => {
+  const fetchCoupons = async () => {
     try {
       const response = await axios.get(
-        `https://12cb-2401-4900-33d5-b6fa-880d-5bd3-d18a-37b0.ngrok-free.app/api/v1/coupon`,{
+        `https://www.frosty-easley.148-113-9-31.plesk.page/api/v1/coupon`,
+        {
           headers: {
             "Content-type": "application/json",
             Authorization: `Bearer ${access_token}`,
             "ngrok-skip-browser-warning": 1,
           },
         }
-      )
+      );
 
       setCoupons(response.data.content);
       console.log(response.data.content);
     } catch (error) {
-      console.error('Error:',error);
+      console.error('Error:', error);
     }
-  }
+  };
 
   const handleFormSubmit = async (couponData) => {
     try {
-      const response = await axios.post(
-        `https://12cb-2401-4900-33d5-b6fa-880d-5bd3-d18a-37b0.ngrok-free.app/api/v1/coupon`,
-        {
-          couponCode: couponData.code,
-          discount: Number(couponData.discount),
-          useType: Number(couponData.type),
-          couponSpecific: couponData.quantity || 'N/A',
-          couponLimit: couponData.limit,
-        },
+      let response;
+      if (editingCoupon) {
+        response = await axios.put(
+          `https://www.frosty-easley.148-113-9-31.plesk.page/api/v1/coupon/${editingCoupon._id}`,
+          {
+            couponCode: couponData.code,
+            discount: Number(couponData.discount),
+            useType: couponData.type,
+            couponSpecific: couponData.quantity || 'N/A',
+            couponLimit: couponData.limit,
+            expiryDate: couponData.expiryDate,
+            userLimit: couponData.userLimit,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${access_token}`,
+              "ngrok-skip-browser-warning": 1,
+            }
+          }
+        );
+
+        setCoupons(coupons.map(coupon =>
+          coupon._id === editingCoupon._id ? response.data.content : coupon
+        ));
+      } else {
+        response = await axios.post(
+          `https://www.frosty-easley.148-113-9-31.plesk.page/api/v1/coupon`,
+          {
+            couponCode: couponData.code,
+            discount: Number(couponData.discount),
+            useType: couponData.type,
+            couponSpecific: couponData.quantity || 'N/A',
+            couponLimit: couponData.limit,
+            expiryDate: couponData.expiryDate,
+            userLimit: couponData.userLimit,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${access_token}`,
+              "ngrok-skip-browser-warning": 1,
+            }
+          }
+        );
+
+        setCoupons([...coupons, response.data.content]);
+      }
+
+      setEditingCoupon(null);
+      handleCloseModal();
+    } catch (error) {
+      console.error('Failed to create/update coupon', error.response ? error.response.data : error.message);
+    }
+  };
+
+  const handleEditCoupon = (coupon) => {
+    setEditingCoupon(coupon);
+    setModalOpen(true);
+  };
+
+  const handleDeleteCoupon = async (couponId) => {
+    try {
+      await axios.delete(
+        `https://www.frosty-easley.148-113-9-31.plesk.page/api/v1/coupon/${couponId}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -61,14 +120,34 @@ const CouponsPage = () => {
         }
       );
 
-      
-        const newCoupon = response.data.content;
-        console.log(newCoupon);
-        setCoupons([...coupons, newCoupon]);
-        handleCloseModal();
-
+      setCoupons(coupons.filter(coupon => coupon._id !== couponId));
     } catch (error) {
-      console.error('Failed to create coupon', error.response ? error.response.data : error.message);
+      console.error('Failed to delete coupon', error.response ? error.response.data : error.message);
+    }
+  };
+
+  const handleToggleCouponStatus = async (couponId) => {
+    try {
+      const coupon = coupons.find(coupon => coupon._id === couponId);
+      const newStatus = coupon.status === 'Active' ? 'Disabled' : 'Active';
+
+      const response = await axios.put(
+        `https://www.frosty-easley.148-113-9-31.plesk.page/api/v1/disable/${couponId}`,
+        { status: newStatus },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${access_token}`,
+            "ngrok-skip-browser-warning": 1,
+          }
+        }
+      );
+
+      setCoupons(coupons.map(coupon =>
+        coupon._id === couponId ? { ...coupon, status: response.data.status } : coupon
+      ));
+    } catch (error) {
+      console.error('Failed to toggle coupon status', error.response ? error.response.data : error.message);
     }
   };
 
@@ -80,7 +159,7 @@ const CouponsPage = () => {
       {isModalOpen && (
         <div className={styles.modalBackdrop} onClick={handleCloseModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <CouponForm onSubmit={handleFormSubmit} />
+            <CouponForm onSubmit={handleFormSubmit} initialData={editingCoupon} />
             <button onClick={handleCloseModal} className={styles.closeButton}>Close</button>
           </div>
         </div>
@@ -112,7 +191,11 @@ const CouponsPage = () => {
               <td>0</td> {/* Initial used count */}
               <td>{coupon.status}</td>
               <td>
-                {/* Action buttons for future use */}
+                <button onClick={() => handleEditCoupon(coupon)}>Edit</button>
+                <button onClick={() => handleToggleCouponStatus(coupon._id)}>
+                  {coupon.status === 'Active' ? 'Disable' : 'Enable'}
+                </button>
+                <button onClick={() => handleDeleteCoupon(coupon._id)}>Delete</button>
               </td>
             </tr>
           ))}
@@ -122,4 +205,4 @@ const CouponsPage = () => {
   );
 };
 
-export default CouponsPage
+export default CouponsPage;

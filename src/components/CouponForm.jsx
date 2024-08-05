@@ -1,8 +1,8 @@
 // src/components/CouponForm.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../styles/CouponForm.module.css';
 
-const CouponForm = ({ onSubmit }) => {
+const CouponForm = ({ onSubmit, initialData }) => {
   const [code, setCode] = useState('');
   const [discount, setDiscount] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -11,6 +11,18 @@ const CouponForm = ({ onSubmit }) => {
   const [quantity, setQuantity] = useState('');
   const [userLimit, setUserLimit] = useState('');
 
+  useEffect(() => {
+    if (initialData) {
+      setCode(initialData.couponCode);
+      setDiscount(initialData.discount);
+      setExpiryDate(initialData.expiryDate);
+      setLimit(initialData.couponLimit);
+      setType(initialData.useType === 'whole' ? 'whole' : 'quantity');
+      setQuantity(initialData.couponSpecific || '');
+      setUserLimit(initialData.userLimit || '');
+    }
+  }, [initialData]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({ code, discount, expiryDate, limit, type, quantity, userLimit });
@@ -18,7 +30,7 @@ const CouponForm = ({ onSubmit }) => {
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      <h2>Create a Coupon</h2>
+      <h2>{initialData ? 'Edit Coupon' : 'Create a Coupon'}</h2>
       <div>
         <label>Enter Coupon Code:</label>
         <input value={code} onChange={(e) => setCode(e.target.value)} required />
@@ -52,7 +64,7 @@ const CouponForm = ({ onSubmit }) => {
         <label>Select Expiry Date:</label>
         <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} required />
       </div>
-      <button type="submit">Submit</button>
+      <button type="submit">{initialData ? 'Update' : 'Submit'}</button>
     </form>
   );
 };
